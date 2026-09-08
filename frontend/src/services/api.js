@@ -25,7 +25,11 @@ async function request(path, options = {}) {
 
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      cache: "no-store",
+    });
   } catch {
     throw new Error("Unable to reach PackSure API. Check that the backend is running.");
   }
