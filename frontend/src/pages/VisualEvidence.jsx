@@ -1,2 +1,84 @@
-import { useEffect, useState } from "react"; import {useLocation,useNavigate} from "react-router-dom"; import {ArrowLeft,Image as ImageIcon,Search} from "lucide-react"; import {api} from "../services/api";
-export default function VisualEvidence(){const nav=useNavigate(),loc=useLocation();const [result,setResult]=useState(null);const [loading,setLoading]=useState(true);const [error,setError]=useState("");useEffect(()=>{let active=true;(async()=>{try{let id=loc.state?.inspectionId;if(!id){const list=await api.inspections();id=list.inspections?.[0]?.id;}if(id){const data=await api.inspection(id);if(active)setResult(data);}}catch(e){if(active)setError(e.message||"Unable to load visual evidence.")}finally{if(active)setLoading(false)}})();return()=>{active=false}},[loc.state?.inspectionId]);const evidence=result?.visual_evidence||[];return <div className="max-w-5xl mx-auto"><button onClick={()=>nav('/scan-result')} className="flex items-center gap-2 text-sm text-slate-500 mb-5"><ArrowLeft size={17}/>Back to Result</button><div className="flex items-center gap-3 mb-8"><div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center"><ImageIcon className="text-teal-700"/></div><div><h1 className="text-3xl font-bold">Visual Evidence</h1><p className="text-sm text-slate-500 mt-1">OCR findings supporting the latest analysis.</p></div></div><div className="grid lg:grid-cols-[320px_1fr] gap-6"><div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">{result?.image_url ? <img src={result.image_url} alt="Inspected package" className="w-full rounded-xl bg-slate-100 object-contain max-h-[520px]" /> : <div className="aspect-square rounded-xl bg-slate-100 grid place-items-center text-sm text-slate-500">Original image unavailable</div>}<p className="text-xs text-slate-500 mt-3">Evidence below is derived from OCR and package information detected by the analyzer.</p></div><div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"><div className="px-6 py-5 border-b border-slate-200"><h2 className="font-semibold">Detected Evidence</h2></div>{evidence.length?<div className="divide-y divide-slate-100">{evidence.map((e,i)=><div key={`${e.label}-${i}`} className="px-6 py-5"><p className="text-xs uppercase tracking-wider text-teal-700 font-semibold">{e.label}</p><p className="text-sm text-slate-800 mt-2 break-words">{e.value}</p></div>)}</div>:<div className="text-center py-16"><Search size={28} className="mx-auto text-slate-400"/><p className="mt-3 text-sm text-slate-500">No evidence is available yet.</p></div>}</div></div>}
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, Image as ImageIcon, Search } from "lucide-react";
+import { api } from "../services/api";
+
+export default function VisualEvidence() {
+  const nav = useNavigate();
+  const loc = useLocation();
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        let id = loc.state?.inspectionId;
+        if (!id) {
+          const list = await api.inspections();
+          id = list.inspections?.[0]?.id;
+        }
+        if (id) {
+          const data = await api.inspection(id);
+          if (active) setResult(data);
+        }
+      } catch (e) {
+        if (active) setError(e.message || "Unable to load visual evidence.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [loc.state?.inspectionId]);
+
+  const evidence = result?.visual_evidence || [];
+
+  if (loading) return <div className="max-w-5xl mx-auto text-sm text-slate-500">Loading visual evidence...</div>;
+  if (error) return <div className="max-w-5xl mx-auto text-sm text-red-600">{error}</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      <button onClick={() => nav('/scan-result')} className="flex items-center gap-2 text-sm text-slate-500 mb-5">
+        <ArrowLeft size={17} />Back to Result
+      </button>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center">
+          <ImageIcon className="text-teal-700" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold">Visual Evidence</h1>
+          <p className="text-sm text-slate-500 mt-1">OCR findings supporting the latest analysis.</p>
+        </div>
+      </div>
+      <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
+          {result?.image_url ? (
+            <img src={result.image_url} alt="Inspected package" className="w-full rounded-xl bg-slate-100 object-contain max-h-[520px]" />
+          ) : (
+            <div className="aspect-square rounded-xl bg-slate-100 grid place-items-center text-sm text-slate-500">Original image unavailable</div>
+          )}
+          <p className="text-xs text-slate-500 mt-3">Evidence below is derived from OCR and package information detected by the analyzer.</p>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-200"><h2 className="font-semibold">Detected Evidence</h2></div>
+          {evidence.length ? (
+            <div className="divide-y divide-slate-100">
+              {evidence.map((e, i) => (
+                <div key={`${e.label}-${i}`} className="px-6 py-5">
+                  <p className="text-xs uppercase tracking-wider text-teal-700 font-semibold">{e.label}</p>
+                  <p className="text-sm text-slate-800 mt-2 break-words">{e.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <Search size={28} className="mx-auto text-slate-400" />
+              <p className="mt-3 text-sm text-slate-500">No evidence is available yet.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
