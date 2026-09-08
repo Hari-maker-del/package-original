@@ -1,6 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
+  "env": {
+    "AI_SERVICE_URL": "https://packsure-ai-service.onrender.com"
+  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/uploads/(.*)", "dest": "/api/index.js" },
