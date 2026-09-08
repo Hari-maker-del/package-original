@@ -28,8 +28,35 @@ app.use("/uploads",express.static(path.resolve(process.env.UPLOAD_DIR||path.join
 app.get("/",(_req,res)=>res.json({service:"PackSure API",status:"ok",version:"1.0.0"}));
 app.get("/api/health",async(_req,res)=>{
   const result={status:"ok",database:"unknown",aiService:"unknown"};
-  try{await pool.query("SELECT 1");result.database="ok";}catch{result.database="error";result.status="degraded";}
-  try{await axios.get(process.env.AI_SERVICE_URL||"http://localhost:8000",{timeout:3000});result.aiService="ok";}catch{result.aiService="error";result.status="degraded";}
+  try{
+    await pool.query("SELECT 1");
+    result.database="ok";
+  }catch(err){
+    result.database="error";
+    result.databaseError=process.env.DATABASE_URL?String(err.message||"connection failed").replace(/postgres(?:ql)?:\/\/[^\s]+/gi,"postgresql://***:***@***"):"DATABASE_URL is not set";
+    result.status="degraded";
+  }
+  try{
+    const aiUrl=process.env.AI_SERVICE_URL;
+    if(!aiUrl){
+      result.aiService="error";
+      result.aiServiceError="AI_SERVICE_URL is not set";
+      result.status="degraded";
+    }else{
+      const response=await axios.get(aiUrl,{timeout:5000,validateStatus:()=>true});
+      if(response.status>=200&&response.status<500){
+        result.aiService="ok";
+      }else{
+        result.aiService="error";
+        result.aiServiceError=`AI service returned HTTP ${response.status}`;
+        result.status="degraded";
+      }
+    }
+  }catch(err){
+    result.aiService="error";
+    result.aiServiceError=String(err.code||err.message||"connection failed").slice(0,300);
+    result.status="degraded";
+  }
   res.status(result.status==="ok"?200:503).json(result);
 });
 
