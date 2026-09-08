@@ -1,12 +1,15 @@
 const {Pool}=require("pg");
 
-const rawConnectionString=process.env.DATABASE_URL;
+const rawConnectionString=process.env.DATABASE_URL||"";
 let connectionString=rawConnectionString;
 
 if(rawConnectionString){
   try{
     const url=new URL(rawConnectionString);
-    url.searchParams.set("sslmode","require");
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("sslcert");
+    url.searchParams.delete("sslkey");
+    url.searchParams.delete("sslrootcert");
     connectionString=url.toString();
   }catch{
     connectionString=rawConnectionString;
