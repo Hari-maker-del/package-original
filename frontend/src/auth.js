@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createElement, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api, clearSession, getStoredUser, getToken, setSession } from "./services/api";
 
 const AuthContext = createContext(null);
@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     logout() { clearSession(); setUser(null); },
   }), [user, loading]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return createElement(AuthContext.Provider, { value }, children);
 }
 
 export const useAuth = () => useContext(AuthContext);
