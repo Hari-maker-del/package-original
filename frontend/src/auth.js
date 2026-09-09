@@ -28,8 +28,18 @@ export function AuthProvider({ children }) {
     },
     async signup(payload) {
       const result = await api.signup(payload);
-      if (result.token) setSession(result.token, result.user);
-      setUser(result.user);
+      if (result.token) {
+        setSession(result.token, result.user);
+        setUser(result.user);
+      } else {
+        // Supabase may require email verification before issuing a session.
+        // Never mark the user as logged in without a real PackSure token.
+        clearSession();
+        setUser(null);
+        if (result.verificationRequired) {
+          window.location.assign(`/login?registered=1&email=${encodeURIComponent(payload.email || "")}`);
+        }
+      }
       return result;
     },
     logout() { clearSession(); setUser(null); },
