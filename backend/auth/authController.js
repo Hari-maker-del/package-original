@@ -14,8 +14,10 @@ async function supabaseAuth(path, body) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data?.msg || data?.message || data?.error_description || "Authentication failed");
+    const error = new Error(data?.msg || data?.message || data?.error_description || data?.error || "Authentication failed");
     error.status = response.status;
+    error.code = data?.code || data?.error_code || data?.error || "AUTH_ERROR";
+    error.payload = data;
     throw error;
   }
   return data;
@@ -79,7 +81,13 @@ const signup = async (req, res) => {
         password,
         options: { data: { full_name: name.trim(), account_type: accountType } },
       });
-      if (!data.user) return res.status(400).json({ message: "Could not create account" });
+      if (!data.user) {
+        const reason = data?.msg || data?.message || data?.error_description || data?.error || "Supabase returned no user";
+        return res.status(502).json({
+          message: `Supabase signup did not create a user: ${reason}`,
+          code: data?.code || data?.error_code || data?.error || "NO_USER_RETURNED",
+        });
+      }
       const user = await syncUser(data.user, name, accountType);
       if (!data.session) {
         return res.status(201).json({ message: "Account created. Please verify your email before signing in.", verificationRequired: true, user });
@@ -100,7 +108,11 @@ const signup = async (req, res) => {
   } catch (error) {
     console.error("Signup error:", error);
     const status = error?.status === 422 ? 400 : error?.status === 429 ? 429 : 500;
-    return res.status(status).json({ message: status === 500 ? "Signup failed" : error?.message || "Signup failed", code: error?.code || "UNKNOWN", detail: String(error?.message || "Unknown error").slice(0, 300) });
+    return res.status(status).json({
+      message: status === 500 ? "Signup failed" : error?.message || "Signup failed",
+      code: error?.code || "UNKNOWN",
+      detail: String(error?.message || "Unknown error").slice(0, 300),
+    });
   }
 };
 
@@ -119,7 +131,6 @@ const login = async (req, res) => {
           return res.json({ message: "Login successful", token: issueToken(user), user });
         }
       } catch (error) {
-        // Preserve access for users created before Supabase Auth was enabled.
         if (error?.status !== 400 && error?.status !== 401) throw error;
         const legacy = await legacyLogin(normalizedEmail, password);
         if (legacy) return res.json(legacy);
